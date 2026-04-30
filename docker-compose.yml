@@ -1,0 +1,46 @@
+services:
+  api:
+    build:
+      context: ./apps/api
+      target: dev
+    container_name: ttm-api
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./apps/api/.env
+    environment:
+      - NODE_ENV=development
+      - WEB_ORIGIN=http://localhost:5173
+    volumes:
+      - ./apps/api/src:/app/src
+      - ./apps/api/serviceAccount.json:/app/serviceAccount.json:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4000/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - ttm
+
+  web:
+    build:
+      context: ./apps/web
+      target: dev
+    container_name: ttm-web
+    ports:
+      - "5173:5173"
+    env_file:
+      - ./apps/web/.env
+    environment:
+      - VITE_API_BASE_URL=http://localhost:4000/api
+    volumes:
+      - ./apps/web/src:/app/src
+      - ./apps/web/index.html:/app/index.html
+    depends_on:
+      - api
+    networks:
+      - ttm
+
+networks:
+  ttm:
+    driver: bridge

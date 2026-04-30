@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 4%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 4%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 4%;
+
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 10%;
+
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+
+    --accent: 262 70% 95%;
+    --accent-foreground: 262 83% 35%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 81% 38%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 262 83% 58%;
+
+    --radius: 0.625rem;
+  }
+
+  .dark {
+    --background: 240 14% 5%;
+    --foreground: 240 5% 96%;
+
+    --card: 240 12% 8%;
+    --card-foreground: 240 5% 96%;
+
+    --popover: 240 14% 7%;
+    --popover-foreground: 240 5% 96%;
+
+    --primary: 262 83% 65%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 8% 13%;
+    --secondary-foreground: 240 5% 96%;
+
+    --muted: 240 8% 13%;
+    --muted-foreground: 240 5% 65%;
+
+    --accent: 262 60% 22%;
+    --accent-foreground: 262 90% 88%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 70% 50%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 60%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 240 8% 18%;
+    --input: 240 8% 18%;
+    --ring: 262 83% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1;
+  }
+
+  /* Soft ambient gradient for the auth screens */
+  .auth-bg {
+    background:
+      radial-gradient(circle at 12% 8%, hsl(262 83% 65% / 0.18), transparent 40%),
+      radial-gradient(circle at 88% 92%, hsl(217 91% 60% / 0.16), transparent 42%),
+      hsl(var(--background));
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.4);
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: hsl(var(--card) / 0.7);
+    backdrop-filter: blur(8px);
+  }
+  .gradient-text {
+    @apply bg-gradient-to-r from-violet-400 via-fuchsia-400 to-blue-400 bg-clip-text text-transparent;
+  }
+}
