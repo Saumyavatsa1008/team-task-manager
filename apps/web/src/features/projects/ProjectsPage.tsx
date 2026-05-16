@@ -14,6 +14,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+} from '@/components/ui/dropdown-menu';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ApiClientError } from '@/lib/api';
@@ -161,28 +168,44 @@ function CreateProjectDialog({ onCreated }: { onCreated: () => void }) {
           <Textarea id="description" rows={3} placeholder="What is this project about?" className="rounded-xl resize-none" {...register('description')} />
         </div>
 
-        <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+        <div className="space-y-3">
           <Label className="text-sm font-semibold">Assign to Teams</Label>
           {teams?.length === 0 ? (
              <div className="text-sm text-destructive font-medium p-3 bg-destructive/10 rounded-xl">
                You must create a Team before you can create a Project.
              </div>
           ) : (
-            <div className="grid gap-2">
-              {teams?.map((t) => (
-                <div 
-                  key={t.id} 
-                  onClick={() => toggleTeam(t.id)}
-                  className={`cursor-pointer rounded-xl border p-3 flex items-center justify-between transition-colors ${
-                    selectedTeamIds.includes(t.id) 
-                      ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20' 
-                      : 'border-border/60 hover:bg-muted/50'
-                  }`}
-                >
-                  <span className="text-sm font-medium">{t.name}</span>
-                  {selectedTeamIds.includes(t.id) && <div className="h-3 w-3 rounded-full bg-teal-500" />}
-                </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {teams?.filter(t => selectedTeamIds.includes(t.id)).map((t) => (
+                <Badge key={t.id} variant="secondary" className="flex items-center gap-1.5 py-1 px-2 border border-border/50">
+                  <span className="text-xs font-normal">{t.name}</span>
+                  <button 
+                    type="button" 
+                    onClick={() => toggleTeam(t.id)} 
+                    className="ml-0.5 rounded-full hover:bg-muted p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                     <svg width="12" height="12" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.7816 4.03157C12.0062 3.80702 12.0062 3.44295 11.7816 3.2184C11.5571 2.99385 11.193 2.99385 10.9685 3.2184L7.50005 6.68682L4.03164 3.2184C3.80708 2.99385 3.44301 2.99385 3.21846 3.2184C2.99391 3.44295 2.99391 3.80702 3.21846 4.03157L6.68688 7.49999L3.21846 10.9684C2.99391 11.193 2.99391 11.557 3.21846 11.7816C3.44301 12.0061 3.80708 12.0061 4.03164 11.7816L7.50005 8.31316L10.9685 11.7816C11.193 12.0061 11.5571 12.0061 11.7816 11.7816C12.0062 11.557 12.0062 11.193 11.7816 10.9684L8.31322 7.49999L11.7816 4.03157Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path></svg>
+                  </button>
+                </Badge>
               ))}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" variant="outline" size="sm" className="h-7 border-dashed text-xs rounded-full">
+                    <Plus className="mr-1 h-3 w-3" /> Add Team
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 max-h-[300px] overflow-y-auto" align="start">
+                  {teams?.map((t) => (
+                    <DropdownMenuCheckboxItem
+                      key={t.id}
+                      checked={selectedTeamIds.includes(t.id)}
+                      onCheckedChange={() => toggleTeam(t.id)}
+                    >
+                      <span className="truncate flex-1 font-medium">{t.name}</span>
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           )}
           {errors.teamIds && <p className="text-xs text-destructive">{errors.teamIds.message}</p>}

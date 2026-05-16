@@ -172,12 +172,12 @@ export function ProjectDetailPage() {
         </TabsContent>
 
         <TabsContent value="teams" className="mt-0 outline-none space-y-6">
-          {isAdmin && availableTeamsToAdd.length > 0 && (
+          {isAdmin && (
             <div className="flex items-center gap-4 bg-muted/30 p-4 rounded-xl border border-border/40">
               <p className="text-sm font-medium text-muted-foreground flex-1">Link an existing team to this project to give its members access.</p>
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="rounded-xl gap-2">
+                  <Button variant="outline" size="sm" className="rounded-xl gap-2" disabled={availableTeamsToAdd.length === 0}>
                     <Plus className="h-4 w-4" /> Add Team
                   </Button>
                 </DialogTrigger>
@@ -186,11 +186,17 @@ export function ProjectDetailPage() {
                     <DialogTitle>Add Team to Project</DialogTitle>
                   </DialogHeader>
                   <div className="grid gap-2 mt-4">
-                    {availableTeamsToAdd.map(t => (
-                      <Button key={t.id} variant="outline" className="justify-start rounded-xl" onClick={() => handleAddTeam(t.id)}>
-                        {t.name}
-                      </Button>
-                    ))}
+                    {availableTeamsToAdd.length === 0 ? (
+                      <div className="text-sm text-muted-foreground p-4 text-center">
+                        You don't have any other teams available to add. You must be a team admin to add a team to this project.
+                      </div>
+                    ) : (
+                      availableTeamsToAdd.map(t => (
+                        <Button key={t.id} variant="outline" className="justify-start rounded-xl" onClick={() => handleAddTeam(t.id)}>
+                          {t.name}
+                        </Button>
+                      ))
+                    )}
                   </div>
                 </DialogContent>
               </Dialog>
