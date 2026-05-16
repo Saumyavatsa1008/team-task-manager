@@ -38,7 +38,7 @@ export function TaskList({ tasks, canManage, teamIds }: Props) {
 function TaskCard({ task, canManage, teamIds }: { task: TaskDoc; canManage: boolean; teamIds: string[] }) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
-  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [membersByTeam, setMembersByTeam] = useState<{ teamId: string; teamName: string; members: TeamMember[] }[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
 
   const update = useUpdateTask(task.projectId);
@@ -52,20 +52,19 @@ function TaskCard({ task, canManage, teamIds }: { task: TaskDoc; canManage: bool
   const handleOpenEdit = async () => {
     if (!canEdit) return;
     setOpen(true);
-    if (members.length > 0) return;
+    if (membersByTeam.length > 0) return;
     
     setLoadingMembers(true);
     try {
       const { api } = await import('@/lib/api');
-      const allMembers: TeamMember[] = [];
+      const groups: { teamId: string; teamName: string; members: TeamMember[] }[] = [];
       for (const tid of teamIds) {
         const { data } = await api.get<any>(`/teams/${tid}`);
         if (data && data.members) {
-          allMembers.push(...data.members);
+          groups.push({ teamId: tid, teamName: data.team.name, members: data.members });
         }
       }
-      const unique = Array.from(new Map(allMembers.map(m => [m.uid, m])).values());
-      setMembers(unique);
+      setMembersByTeam(groups);
     } catch (e) {
       console.error(e);
     } finally {
@@ -153,7 +152,7 @@ function TaskCard({ task, canManage, teamIds }: { task: TaskDoc; canManage: bool
             <div className="p-8 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : (
             <TaskForm
-              members={members}
+              membersByTeam={membersByTeam}
               initial={task}
               onSubmit={async (values) => {
                 try {

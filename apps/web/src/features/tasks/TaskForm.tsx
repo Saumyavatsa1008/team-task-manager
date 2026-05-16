@@ -31,7 +31,7 @@ const schema = z.object({
 export type TaskFormValues = z.infer<typeof schema>;
 
 interface Props {
-  members: TeamMember[];
+  membersByTeam: { teamId: string; teamName: string; members: TeamMember[] }[];
   initial?: TaskDoc;
   submittingLabel?: string;
   onSubmit: (values: {
@@ -44,7 +44,7 @@ interface Props {
   }) => Promise<unknown>;
 }
 
-export function TaskForm({ members, initial, onSubmit, submittingLabel = 'Save' }: Props) {
+export function TaskForm({ membersByTeam, initial, onSubmit, submittingLabel = 'Save' }: Props) {
   const dueDateInitial = initial?.dueDate ? toInputDate(tsToDate(initial.dueDate)) : '';
   const {
     register,
@@ -138,28 +138,35 @@ export function TaskForm({ members, initial, onSubmit, submittingLabel = 'Save' 
         <Input id="dueDate" type="date" {...register('dueDate')} />
       </div>
 
-      <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+      <div className="space-y-4 max-h-48 overflow-y-auto pr-2">
         <Label>Assignees</Label>
-        {members.length === 0 ? (
+        {membersByTeam.length === 0 ? (
           <p className="text-sm text-muted-foreground">No members available to assign.</p>
         ) : (
-          <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
-            {members.map((m) => (
-              <div 
-                key={m.uid}
-                onClick={() => toggleAssignee(m.uid)}
-                className={`cursor-pointer rounded-xl border p-2 flex items-center gap-3 transition-colors ${
-                  assigneeIds.includes(m.uid) 
-                    ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20' 
-                    : 'border-border/60 hover:bg-muted/50'
-                }`}
-              >
-                <Avatar className="h-6 w-6">
-                  {m.photoURL ? <AvatarImage src={m.photoURL} alt={m.displayName} /> : null}
-                  <AvatarFallback className="text-[10px] bg-teal-100 text-teal-700">{initials(m.displayName || m.email)}</AvatarFallback>
-                </Avatar>
-                <span className="text-xs font-medium truncate flex-1">{m.displayName || m.email.split('@')[0]}</span>
-                {assigneeIds.includes(m.uid) && <div className="h-2 w-2 rounded-full bg-teal-500" />}
+          <div className="space-y-4">
+            {membersByTeam.map((teamGroup) => (
+              <div key={teamGroup.teamId} className="space-y-2">
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{teamGroup.teamName}</div>
+                <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
+                  {teamGroup.members.map((m) => (
+                    <div 
+                      key={m.uid}
+                      onClick={() => toggleAssignee(m.uid)}
+                      className={`cursor-pointer rounded-xl border p-2 flex items-center gap-3 transition-colors ${
+                        assigneeIds.includes(m.uid) 
+                          ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20' 
+                          : 'border-border/60 hover:bg-muted/50'
+                      }`}
+                    >
+                      <Avatar className="h-6 w-6">
+                        {m.photoURL ? <AvatarImage src={m.photoURL} alt={m.displayName} /> : null}
+                        <AvatarFallback className="text-[10px] bg-teal-100 text-teal-700">{initials(m.displayName || m.email)}</AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs font-medium truncate flex-1">{m.displayName || m.email.split('@')[0]}</span>
+                      {assigneeIds.includes(m.uid) && <div className="h-2 w-2 rounded-full bg-teal-500" />}
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>

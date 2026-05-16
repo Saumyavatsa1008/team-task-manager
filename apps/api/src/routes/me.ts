@@ -16,7 +16,7 @@ router.get(
     const uid = req.user!.uid;
     const tasks = await tasksRepo.listByAssignee(uid);
     const projectIds = [...new Set(tasks.map((t) => t.projectId))];
-    const teamIds = [...new Set(tasks.flatMap((t) => t.teamIds))];
+    const teamIds = [...new Set(tasks.flatMap((t) => t.teamIds || []).filter(Boolean))];
     const [projects, teams] = await Promise.all([
       Promise.all(projectIds.map((id) => projectsRepo.get(id))),
       Promise.all(teamIds.map((id) => teamsRepo.get(id))),

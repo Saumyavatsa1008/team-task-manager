@@ -216,30 +216,23 @@ export function ProjectDetailPage() {
 
 // Wrapper to fetch members for the TaskForm
 function TaskFormWrapper({ teamIds, onSuccess }: { teamIds: string[], onSuccess: (v: any) => Promise<unknown> }) {
-  // We need to fetch members for all these teams.
-  // For simplicity, we can just use the dashboard teams if they exist? No, dashboard doesn't contain members.
-  // This is a bit inefficient to fetch in a loop inside a component, but since it's only a few teams, we'll use a local state.
-  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [membersByTeam, setMembersByTeam] = useState<{ teamId: string; teamName: string; members: TeamMember[] }[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // We should actually just rely on a new hook or use Queries.
-  // For now, let's use a simple approach: import api directly.
   useState(() => {
     let mounted = true;
     const fetchMembers = async () => {
       try {
         const { api } = await import('@/lib/api');
-        const allMembers: TeamMember[] = [];
+        const groups: { teamId: string; teamName: string; members: TeamMember[] }[] = [];
         for (const tid of teamIds) {
           const { data } = await api.get<any>(`/teams/${tid}`);
           if (data && data.members) {
-            allMembers.push(...data.members);
+            groups.push({ teamId: tid, teamName: data.team.name, members: data.members });
           }
         }
-        // Deduplicate members
-        const unique = Array.from(new Map(allMembers.map(m => [m.uid, m])).values());
         if (mounted) {
-          setMembers(unique);
+          setMembersByTeam(groups);
           setLoading(false);
         }
       } catch (err) {
@@ -254,7 +247,7 @@ function TaskFormWrapper({ teamIds, onSuccess }: { teamIds: string[], onSuccess:
 
   return (
     <TaskForm
-      members={members}
+      membersByTeam={membersByTeam}
       submittingLabel="Create task"
       onSubmit={onSuccess}
     />

@@ -156,6 +156,11 @@ function CreateProjectDialog({ onCreated }: { onCreated: () => void }) {
           {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
         </div>
 
+        <div className="space-y-2">
+          <Label htmlFor="description" className="text-sm font-semibold">Description <span className="font-normal text-muted-foreground">(optional)</span></Label>
+          <Textarea id="description" rows={3} placeholder="What is this project about?" className="rounded-xl resize-none" {...register('description')} />
+        </div>
+
         <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
           <Label className="text-sm font-semibold">Assign to Teams</Label>
           {teams?.length === 0 ? (
@@ -181,11 +186,6 @@ function CreateProjectDialog({ onCreated }: { onCreated: () => void }) {
             </div>
           )}
           {errors.teamIds && <p className="text-xs text-destructive">{errors.teamIds.message}</p>}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="description" className="text-sm font-semibold">Description <span className="font-normal text-muted-foreground">(optional)</span></Label>
-          <Textarea id="description" rows={3} placeholder="What is this project about?" className="rounded-xl resize-none" {...register('description')} />
         </div>
 
         <div className="space-y-4 mt-6 border-t border-border/40 pt-4">
