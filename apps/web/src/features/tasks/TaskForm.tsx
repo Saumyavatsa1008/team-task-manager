@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,9 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ApiClientError } from '@/lib/api';
 import type { TaskDoc, TeamMember, TaskStatus, TaskPriority } from '@/lib/types';
-import { tsToDate } from '@/lib/utils';
+import { tsToDate, initials } from '@/lib/utils';
 
 const schema = z.object({
   title: z.string().trim().min(1, 'Required').max(140),
@@ -24,7 +25,7 @@ const schema = z.object({
   status: z.enum(['todo', 'in_progress', 'done']),
   priority: z.enum(['low', 'medium', 'high']),
   dueDate: z.string().optional(),
-  assigneeId: z.string().optional(),
+  assigneeIds: z.array(z.string()).default([]),
 });
 
 export type TaskFormValues = z.infer<typeof schema>;
@@ -39,7 +40,7 @@ interface Props {
     status: TaskStatus;
     priority: TaskPriority;
     dueDate: string | null;
-    assigneeId: string | null;
+    assigneeIds: string[];
   }) => Promise<unknown>;
 }
 
@@ -59,13 +60,13 @@ export function TaskForm({ members, initial, onSubmit, submittingLabel = 'Save' 
       status: initial?.status ?? 'todo',
       priority: initial?.priority ?? 'medium',
       dueDate: dueDateInitial,
-      assigneeId: initial?.assigneeId ?? '',
+      assigneeIds: initial?.assigneeIds ?? [],
     },
   });
 
   const status = watch('status');
   const priority = watch('priority');
-  const assigneeId = watch('assigneeId');
+  const assigneeIds = watch('assigneeIds');
 
   const submit = async (values: TaskFormValues) => {
     try {
@@ -75,10 +76,18 @@ export function TaskForm({ members, initial, onSubmit, submittingLabel = 'Save' 
         status: values.status,
         priority: values.priority,
         dueDate: values.dueDate ? new Date(values.dueDate).toISOString() : null,
-        assigneeId: values.assigneeId || null,
+        assigneeIds: values.assigneeIds || [],
       });
     } catch (err) {
       toast.error(err instanceof ApiClientError ? err.message : 'Save failed');
+    }
+  };
+
+  const toggleAssignee = (uid: string) => {
+    if (assigneeIds.includes(uid)) {
+      setValue('assigneeIds', assigneeIds.filter(id => id !== uid), { shouldValidate: true });
+    } else {
+      setValue('assigneeIds', [...assigneeIds, uid], { shouldValidate: true });
     }
   };
 
@@ -124,30 +133,37 @@ export function TaskForm({ members, initial, onSubmit, submittingLabel = 'Save' 
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="dueDate">Due date</Label>
-          <Input id="dueDate" type="date" {...register('dueDate')} />
-        </div>
-        <div className="space-y-2">
-          <Label>Assignee</Label>
-          <Select
-            value={assigneeId || 'unassigned'}
-            onValueChange={(v) => setValue('assigneeId', v === 'unassigned' ? '' : v)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Unassigned" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="unassigned">Unassigned</SelectItem>
-              {members.map((m) => (
-                <SelectItem key={m.uid} value={m.uid}>
-                  {m.displayName || m.email}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="dueDate">Due date</Label>
+        <Input id="dueDate" type="date" {...register('dueDate')} />
+      </div>
+
+      <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+        <Label>Assignees</Label>
+        {members.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No members available to assign.</p>
+        ) : (
+          <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
+            {members.map((m) => (
+              <div 
+                key={m.uid}
+                onClick={() => toggleAssignee(m.uid)}
+                className={`cursor-pointer rounded-xl border p-2 flex items-center gap-3 transition-colors ${
+                  assigneeIds.includes(m.uid) 
+                    ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20' 
+                    : 'border-border/60 hover:bg-muted/50'
+                }`}
+              >
+                <Avatar className="h-6 w-6">
+                  {m.photoURL ? <AvatarImage src={m.photoURL} alt={m.displayName} /> : null}
+                  <AvatarFallback className="text-[10px] bg-teal-100 text-teal-700">{initials(m.displayName || m.email)}</AvatarFallback>
+                </Avatar>
+                <span className="text-xs font-medium truncate flex-1">{m.displayName || m.email.split('@')[0]}</span>
+                {assigneeIds.includes(m.uid) && <div className="h-2 w-2 rounded-full bg-teal-500" />}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex justify-end pt-2">

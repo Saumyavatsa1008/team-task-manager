@@ -14,7 +14,7 @@ export interface TaskInput {
   status?: TaskStatus;
   priority?: TaskPriority;
   dueDate?: string | null;
-  assigneeId?: string | null;
+  assigneeIds?: string[];
 }
 
 export function useProjectTasks(projectId: string | undefined) {

@@ -187,7 +187,7 @@ function BrandingPanel() {
           <div className="grid h-9 w-9 place-items-center rounded-md bg-gradient-to-br from-violet-600 to-blue-600 text-white shadow-glow">
             <CheckCircle2 className="h-5 w-5" />
           </div>
-          <span className="text-base font-semibold tracking-tight">Team Task Manager</span>
+          <span className="text-base font-semibold tracking-tight">TaskFlow</span>
         </div>
         <h2 className="mt-10 text-3xl font-semibold leading-tight tracking-tight">
           Plan less. <span className="gradient-text">Ship more.</span>

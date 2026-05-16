@@ -31,12 +31,14 @@ export const memberUpdateSchema = z.object({
 export const projectCreateSchema = z.object({
   name: text(80),
   description: optionalText(1000),
+  teamIds: z.array(z.string().min(1)).min(1, 'At least one team must be selected'),
 });
 
 export const projectUpdateSchema = z.object({
   name: text(80).optional(),
   description: z.string().trim().max(1000).optional(),
   status: z.enum(['active', 'archived']).optional(),
+  teamIds: z.array(z.string().min(1)).optional(),
 });
 
 const dueDateSchema = z
@@ -49,7 +51,7 @@ export const taskCreateSchema = z.object({
   status: z.enum(['todo', 'in_progress', 'done']).default('todo'),
   priority: z.enum(['low', 'medium', 'high']).default('medium'),
   dueDate: dueDateSchema.optional().default(null),
-  assigneeId: idStr.nullable().optional().default(null),
+  assigneeIds: z.array(idStr).default([]),
 });
 
 export const taskUpdateSchema = z.object({
@@ -58,7 +60,7 @@ export const taskUpdateSchema = z.object({
   status: z.enum(['todo', 'in_progress', 'done']).optional(),
   priority: z.enum(['low', 'medium', 'high']).optional(),
   dueDate: dueDateSchema.optional(),
-  assigneeId: idStr.nullable().optional(),
+  assigneeIds: z.array(idStr).optional(),
 });
 
 export const taskListQuerySchema = z.object({

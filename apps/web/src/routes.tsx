@@ -8,6 +8,7 @@ import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { TeamsPage } from '@/features/teams/TeamsPage';
 import { TeamDetailPage } from '@/features/teams/TeamDetailPage';
 import { ProjectDetailPage } from '@/features/projects/ProjectDetailPage';
+import { ProjectsPage } from '@/features/projects/ProjectsPage';
 import { MyTasksPage } from '@/features/tasks/MyTasksPage';
 import { NotFoundPage } from '@/components/layout/NotFoundPage';
 
@@ -26,6 +27,7 @@ export const router = createBrowserRouter([
         element: <AppShell />,
         children: [
           { path: '/', element: <DashboardPage /> },
+          { path: '/projects', element: <ProjectsPage /> },
           { path: '/my-tasks', element: <MyTasksPage /> },
           { path: '/teams', element: <TeamsPage /> },
           { path: '/teams/:teamId', element: <TeamDetailPage /> },

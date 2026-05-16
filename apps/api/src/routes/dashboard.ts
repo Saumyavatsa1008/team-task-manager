@@ -21,7 +21,7 @@ router.get(
       tasksRepo.listByTeams(teamIds),
     ]);
 
-    const myTasks = allTasks.filter((t) => t.assigneeId === uid);
+    const myTasks = allTasks.filter((t) => t.assigneeIds && t.assigneeIds.includes(uid));
     const now = Date.now();
     const isOverdue = (t: TaskDoc) =>
       t.dueDate != null && t.status !== 'done' && t.dueDate.toMillis() < now;

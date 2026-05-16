@@ -74,7 +74,7 @@ export function SignupPage() {
             <div className="grid h-9 w-9 place-items-center rounded-md bg-gradient-to-br from-violet-600 to-blue-600 text-white shadow-glow">
               <CheckCircle2 className="h-5 w-5" />
             </div>
-            <span className="text-base font-semibold tracking-tight">Team Task Manager</span>
+            <span className="text-base font-semibold tracking-tight">TaskFlow</span>
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">Create your account</h1>
           <p className="mt-1 text-sm text-muted-foreground">Free for your team — get started in seconds</p>

@@ -28,35 +28,57 @@ router.get(
 );
 
 // Create a task in a project — both admin and member can create.
-// Members cannot assign to others; if they pass an assigneeId other than self, reject.
+// Members cannot assign to others; if they pass assigneeIds with someone other than themselves, reject.
 router.post(
   '/projects/:projectId/tasks',
   requireProjectAccess,
   validate(taskCreateSchema, 'body'),
   asyncHandler(async (req, res) => {
-    const role = (req as Request & { teamRole?: TeamRole }).teamRole;
+    // Project access means they are a member of at least one of the project's teams.
+    // However, to restrict assignment, we need to know their exact role.
+    // For simplicity, if they aren't admin in ANY of the project's teams, they are a 'member'.
     const project = (req as Request & { project?: ProjectDoc }).project!;
     const body = req.body as ReturnType<typeof taskCreateSchema.parse>;
+    const uid = req.user!.uid;
 
-    if (body.assigneeId) {
-      const team = await teamsRepo.get(project.teamId);
-      if (!team || !team.roles[body.assigneeId]) {
-        throw ApiError.validation({ assigneeId: ['must be a member of the team'] });
+    const userTeams = await teamsRepo.listForUser(uid);
+    let isAdminAny = false;
+    
+    // Check if the assigned members belong to ANY of the project's teams
+    const validTeamMembers = new Set<string>();
+    for (const teamId of project.teamIds) {
+      const team = await teamsRepo.get(teamId);
+      if (team) {
+        Object.keys(team.roles).forEach(memberUid => validTeamMembers.add(memberUid));
+        const userTeam = userTeams.find(t => t.id === teamId);
+        if (userTeam && userTeam.roles[uid] === 'admin') isAdminAny = true;
       }
     }
-    if (role === 'member' && body.assigneeId && body.assigneeId !== req.user!.uid) {
-      throw ApiError.forbidden('Members can only assign tasks to themselves');
+
+    if (body.assigneeIds.length > 0) {
+      for (const assigneeId of body.assigneeIds) {
+        if (!validTeamMembers.has(assigneeId)) {
+          throw ApiError.validation({ assigneeIds: [`User ${assigneeId} must be a member of one of the project's teams`] });
+        }
+      }
+    }
+
+    if (!isAdminAny && body.assigneeIds.length > 0) {
+       // Members can only assign to themselves. They cannot assign multiple people if it includes others.
+       if (body.assigneeIds.length > 1 || body.assigneeIds[0] !== uid) {
+         throw ApiError.forbidden('Members can only assign tasks to themselves');
+       }
     }
 
     const task = await tasksRepo.create({
       projectId: project.id,
-      teamId: project.teamId,
+      teamIds: project.teamIds,
       title: body.title,
       description: body.description,
       status: body.status,
       priority: body.priority,
       dueDate: body.dueDate,
-      assigneeId: body.assigneeId,
+      assigneeIds: body.assigneeIds,
       createdBy: req.user!.uid,
     });
     res.status(201).json({ task });
@@ -77,26 +99,37 @@ router.patch(
   requireTaskAccess,
   validate(taskUpdateSchema, 'body'),
   asyncHandler(async (req, res) => {
-    const role = (req as Request & { teamRole?: TeamRole }).teamRole;
     const task = (req as Request & { task?: TaskDoc }).task!;
-    const callerUid = req.user!.uid;
+    const uid = req.user!.uid;
     const body = req.body as ReturnType<typeof taskUpdateSchema.parse>;
     const fields = Object.keys(body) as (keyof typeof body)[];
 
-    if (role === 'admin') {
-      // Admins can edit anything. Validate assignee is a team member.
-      if (body.assigneeId) {
-        const team = await teamsRepo.get(task.teamId);
-        if (!team || !team.roles[body.assigneeId]) {
-          throw ApiError.validation({ assigneeId: ['must be a member of the team'] });
+    const userTeams = await teamsRepo.listForUser(uid);
+    let isAdminAny = false;
+    const validTeamMembers = new Set<string>();
+    
+    for (const teamId of task.teamIds) {
+      const team = await teamsRepo.get(teamId);
+      if (team) {
+        Object.keys(team.roles).forEach(memberUid => validTeamMembers.add(memberUid));
+        const userTeam = userTeams.find(t => t.id === teamId);
+        if (userTeam && userTeam.roles[uid] === 'admin') isAdminAny = true;
+      }
+    }
+
+    if (isAdminAny) {
+      // Admins can edit anything. Validate assignees are team members.
+      if (body.assigneeIds && body.assigneeIds.length > 0) {
+        for (const assigneeId of body.assigneeIds) {
+          if (!validTeamMembers.has(assigneeId)) {
+            throw ApiError.validation({ assigneeIds: [`User ${assigneeId} must be a member of the project teams`] });
+          }
         }
       }
     } else {
       // Members:
-      //  - can update status (and only status) on tasks assigned to them
-      //  - can edit any field on tasks they created BEFORE assignment to someone else
-      const isAssignee = task.assigneeId === callerUid;
-      const isCreator = task.createdBy === callerUid;
+      const isAssignee = task.assigneeIds.includes(uid);
+      const isCreator = task.createdBy === uid;
       const onlyStatusChange = fields.length === 1 && fields[0] === 'status';
 
       if (onlyStatusChange) {
@@ -107,13 +140,15 @@ router.patch(
         if (!isCreator) {
           throw ApiError.forbidden('Only the task creator (or an admin) can edit task fields');
         }
-        if (task.assigneeId && task.assigneeId !== callerUid) {
+        if (task.assigneeIds.length > 0 && !task.assigneeIds.includes(uid)) {
           throw ApiError.forbidden(
             'This task is already assigned; only an admin can edit it now',
           );
         }
-        if (body.assigneeId && body.assigneeId !== callerUid) {
-          throw ApiError.forbidden('Members can only assign tasks to themselves');
+        if (body.assigneeIds && body.assigneeIds.length > 0) {
+           if (body.assigneeIds.length > 1 || body.assigneeIds[0] !== uid) {
+             throw ApiError.forbidden('Members can only assign tasks to themselves');
+           }
         }
       }
     }
@@ -127,9 +162,16 @@ router.delete(
   '/tasks/:taskId',
   requireTaskAccess,
   asyncHandler(async (req, res) => {
-    const role = (req as Request & { teamRole?: TeamRole }).teamRole;
     const task = (req as Request & { task?: TaskDoc }).task!;
-    if (role !== 'admin' && task.createdBy !== req.user!.uid) {
+    const uid = req.user!.uid;
+    const userTeams = await teamsRepo.listForUser(uid);
+    let isAdminAny = false;
+    for (const teamId of task.teamIds) {
+      const userTeam = userTeams.find(t => t.id === teamId);
+      if (userTeam && userTeam.roles[uid] === 'admin') isAdminAny = true;
+    }
+
+    if (!isAdminAny && task.createdBy !== uid) {
       throw ApiError.forbidden('Only the task creator or an admin can delete a task');
     }
     await tasksRepo.delete(task.id);

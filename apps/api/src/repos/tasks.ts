@@ -7,13 +7,13 @@ export type TaskPriority = 'low' | 'medium' | 'high';
 export interface TaskDoc {
   id: string;
   projectId: string;
-  teamId: string;
+  teamIds: string[];
   title: string;
   description: string;
   status: TaskStatus;
   priority: TaskPriority;
   dueDate: Timestamp | null;
-  assigneeId: string | null;
+  assigneeIds: string[];
   createdBy: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -31,51 +31,55 @@ export const tasksRepo = {
   async listByProject(projectId: string, filters: { status?: TaskStatus; assigneeId?: string } = {}): Promise<TaskDoc[]> {
     let q = col().where('projectId', '==', projectId) as FirebaseFirestore.Query;
     if (filters.status) q = q.where('status', '==', filters.status);
-    if (filters.assigneeId) q = q.where('assigneeId', '==', filters.assigneeId);
+    if (filters.assigneeId) q = q.where('assigneeIds', 'array-contains', filters.assigneeId);
     q = q.orderBy('createdAt', 'desc');
     const snap = await q.get();
     return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<TaskDoc, 'id'>) }));
   },
 
   async listByAssignee(uid: string): Promise<TaskDoc[]> {
-    const snap = await col().where('assigneeId', '==', uid).orderBy('dueDate', 'asc').get();
+    const snap = await col().where('assigneeIds', 'array-contains', uid).orderBy('dueDate', 'asc').get();
     return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<TaskDoc, 'id'>) }));
   },
 
   async listByTeams(teamIds: string[]): Promise<TaskDoc[]> {
     if (teamIds.length === 0) return [];
     const chunks: string[][] = [];
-    for (let i = 0; i < teamIds.length; i += 30) chunks.push(teamIds.slice(i, i + 30));
+    for (let i = 0; i < teamIds.length; i += 10) chunks.push(teamIds.slice(i, i + 10));
     const results = await Promise.all(
-      chunks.map((c) => col().where('teamId', 'in', c).get()),
+      chunks.map((c) => col().where('teamIds', 'array-contains-any', c).get()),
     );
-    return results.flatMap((s) =>
-      s.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<TaskDoc, 'id'>) })),
-    );
+    const uniqueMap = new Map<string, TaskDoc>();
+    results.flatMap((s) => s.docs).forEach((d) => {
+      if (!uniqueMap.has(d.id)) {
+        uniqueMap.set(d.id, { id: d.id, ...(d.data() as Omit<TaskDoc, 'id'>) });
+      }
+    });
+    return Array.from(uniqueMap.values());
   },
 
   async create(input: {
     projectId: string;
-    teamId: string;
+    teamIds: string[];
     title: string;
     description: string;
     status: TaskStatus;
     priority: TaskPriority;
     dueDate: Date | null;
-    assigneeId: string | null;
+    assigneeIds: string[];
     createdBy: string;
   }): Promise<TaskDoc> {
     const ref = col().doc();
     const now = Timestamp.now();
     const doc: Omit<TaskDoc, 'id'> = {
       projectId: input.projectId,
-      teamId: input.teamId,
+      teamIds: input.teamIds,
       title: input.title,
       description: input.description,
       status: input.status,
       priority: input.priority,
       dueDate: input.dueDate ? Timestamp.fromDate(input.dueDate) : null,
-      assigneeId: input.assigneeId,
+      assigneeIds: input.assigneeIds,
       createdBy: input.createdBy,
       createdAt: now,
       updatedAt: now,
@@ -92,7 +96,7 @@ export const tasksRepo = {
       status: TaskStatus;
       priority: TaskPriority;
       dueDate: Date | null;
-      assigneeId: string | null;
+      assigneeIds: string[];
     }>,
   ): Promise<TaskDoc> {
     const ref = col().doc(id);

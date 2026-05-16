@@ -34,7 +34,7 @@ export interface TeamDoc {
 
 export interface ProjectDoc {
   id: string;
-  teamId: string;
+  teamIds: string[];
   name: string;
   description: string;
   ownerId: string;
@@ -46,13 +46,13 @@ export interface ProjectDoc {
 export interface TaskDoc {
   id: string;
   projectId: string;
-  teamId: string;
+  teamIds: string[];
   title: string;
   description: string;
   status: TaskStatus;
   priority: TaskPriority;
   dueDate: FsTimestamp | null;
-  assigneeId: string | null;
+  assigneeIds: string[];
   createdBy: string;
   createdAt: FsTimestamp;
   updatedAt: FsTimestamp;

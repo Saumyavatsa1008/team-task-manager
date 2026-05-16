@@ -24,7 +24,7 @@ export function useProject(projectId: string | undefined) {
     enabled: !!projectId,
     queryKey: projectsKeys.detail(projectId ?? ''),
     queryFn: async () => {
-      const { data } = await api.get<{ project: ProjectDoc; team: TeamDoc }>(
+      const { data } = await api.get<{ project: ProjectDoc; teams: TeamDoc[] }>(
         `/projects/${projectId}`,
       );
       return data;
@@ -32,30 +32,38 @@ export function useProject(projectId: string | undefined) {
   });
 }
 
-export function useCreateProject(teamId: string) {
+export function useCreateProject() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { name: string; description?: string }) => {
+    mutationFn: async (input: { name: string; description?: string; teamIds: string[] }) => {
       const { data } = await api.post<{ project: ProjectDoc }>(
-        `/teams/${teamId}/projects`,
+        `/projects`,
         input,
       );
       return data.project;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: projectsKeys.byTeam(teamId) }),
+    onSuccess: (project) => {
+      project.teamIds.forEach(tid => {
+        qc.invalidateQueries({ queryKey: projectsKeys.byTeam(tid) });
+      });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
   });
 }
 
 export function useUpdateProject(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: Partial<{ name: string; description: string; status: 'active' | 'archived' }>) => {
+    mutationFn: async (input: Partial<{ name: string; description: string; status: 'active' | 'archived'; teamIds: string[] }>) => {
       const { data } = await api.patch<{ project: ProjectDoc }>(`/projects/${projectId}`, input);
       return data.project;
     },
     onSuccess: (project) => {
       qc.invalidateQueries({ queryKey: projectsKeys.detail(projectId) });
-      qc.invalidateQueries({ queryKey: projectsKeys.byTeam(project.teamId) });
+      project.teamIds.forEach(tid => {
+        qc.invalidateQueries({ queryKey: projectsKeys.byTeam(tid) });
+      });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }

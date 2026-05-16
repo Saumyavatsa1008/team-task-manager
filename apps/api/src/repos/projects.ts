@@ -5,7 +5,7 @@ export type ProjectStatus = 'active' | 'archived';
 
 export interface ProjectDoc {
   id: string;
-  teamId: string;
+  teamIds: string[];
   name: string;
   description: string;
   ownerId: string;
@@ -25,7 +25,7 @@ export const projectsRepo = {
 
   async listByTeam(teamId: string): Promise<ProjectDoc[]> {
     const snap = await col()
-      .where('teamId', '==', teamId)
+      .where('teamIds', 'array-contains', teamId)
       .orderBy('createdAt', 'desc')
       .get();
     return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ProjectDoc, 'id'>) }));
@@ -33,19 +33,24 @@ export const projectsRepo = {
 
   async listByTeams(teamIds: string[]): Promise<ProjectDoc[]> {
     if (teamIds.length === 0) return [];
-    // Firestore `in` clause is capped at 30 values — chunk if needed.
+    // array-contains-any is capped at 10 values per query.
     const chunks: string[][] = [];
-    for (let i = 0; i < teamIds.length; i += 30) chunks.push(teamIds.slice(i, i + 30));
+    for (let i = 0; i < teamIds.length; i += 10) chunks.push(teamIds.slice(i, i + 10));
     const results = await Promise.all(
-      chunks.map((c) => col().where('teamId', 'in', c).get()),
+      chunks.map((c) => col().where('teamIds', 'array-contains-any', c).get()),
     );
-    return results.flatMap((s) =>
-      s.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ProjectDoc, 'id'>) })),
-    );
+    // Remove duplicates manually since chunks could overlap project results
+    const uniqueMap = new Map<string, ProjectDoc>();
+    results.flatMap((s) => s.docs).forEach((d) => {
+      if (!uniqueMap.has(d.id)) {
+        uniqueMap.set(d.id, { id: d.id, ...(d.data() as Omit<ProjectDoc, 'id'>) });
+      }
+    });
+    return Array.from(uniqueMap.values());
   },
 
   async create(input: {
-    teamId: string;
+    teamIds: string[];
     name: string;
     description: string;
     ownerId: string;
@@ -53,7 +58,7 @@ export const projectsRepo = {
     const ref = col().doc();
     const now = Timestamp.now();
     const doc: Omit<ProjectDoc, 'id'> = {
-      teamId: input.teamId,
+      teamIds: input.teamIds,
       name: input.name,
       description: input.description,
       ownerId: input.ownerId,
@@ -80,7 +85,7 @@ export const projectsRepo = {
   },
 
   async deleteByTeam(teamId: string): Promise<string[]> {
-    const snap = await col().where('teamId', '==', teamId).get();
+    const snap = await col().where('teamIds', 'array-contains', teamId).get();
     const ids = snap.docs.map((d) => d.id);
     const batch = db.batch();
     snap.docs.forEach((d) => batch.delete(d.ref));

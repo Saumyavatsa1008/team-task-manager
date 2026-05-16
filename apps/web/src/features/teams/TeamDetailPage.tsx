@@ -1,13 +1,10 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
-  Plus,
   Users,
-  FolderKanban,
   Trash2,
   Loader2,
   Crown,
-  ArrowRight,
   ShieldCheck,
   MailPlus,
   X,
@@ -17,8 +14,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { sendSignInLinkToEmail } from 'firebase/auth';
-import { firebaseAuth } from '@/lib/firebase';
 import {
   useTeam,
   useAddMember,
@@ -26,14 +21,11 @@ import {
   useRemoveMember,
   useCancelInvite,
 } from '@/hooks/useTeams';
-import { useTeamProjects, useCreateProject, useDeleteProject } from '@/hooks/useProjects';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -45,7 +37,6 @@ import {
 } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
@@ -54,15 +45,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { initials, formatDate, tsToDate } from '@/lib/utils';
+import { initials } from '@/lib/utils';
 import { ApiClientError } from '@/lib/api';
-import type { ProjectDoc, TeamMember, InviteDoc } from '@/lib/types';
+import type { TeamMember, InviteDoc } from '@/lib/types';
 
 export function TeamDetailPage() {
   const { teamId } = useParams<{ teamId: string }>();
   const { user } = useAuth();
   const { data, isLoading } = useTeam(teamId);
-  const { data: projects } = useTeamProjects(teamId);
   const isAdmin = data?.team && user ? data.team.roles[user.uid] === 'admin' : false;
 
   if (isLoading || !data) {
@@ -90,182 +80,16 @@ export function TeamDetailPage() {
         </Badge>
       </div>
 
-      <Tabs defaultValue="projects">
-        <TabsList>
-          <TabsTrigger value="projects" className="gap-2">
-            <FolderKanban className="h-4 w-4" /> Projects
-            <Badge variant="secondary" className="ml-1">{(projects ?? []).length}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="members" className="gap-2">
-            <Users className="h-4 w-4" /> Members
-            <Badge variant="secondary" className="ml-1">
-              {data.members.length}
-              {isAdmin && data.invites.length > 0 ? ` + ${data.invites.length}` : ''}
-            </Badge>
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="projects">
-          <ProjectsTab teamId={teamId!} canCreate={isAdmin} projects={projects ?? []} />
-        </TabsContent>
-        <TabsContent value="members">
-          <MembersTab
-            teamId={teamId!}
-            ownerId={data.team.ownerId}
-            members={data.members}
-            invites={data.invites}
-            canManage={isAdmin}
-          />
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
-
-// ---------- Projects tab ----------
-function ProjectsTab({
-  teamId,
-  canCreate,
-  projects,
-}: {
-  teamId: string;
-  canCreate: boolean;
-  projects: ProjectDoc[];
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {projects.length} project{projects.length === 1 ? '' : 's'}
-        </p>
-        {canCreate ? (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button variant="gradient">
-                <Plus className="h-4 w-4" /> New project
-              </Button>
-            </DialogTrigger>
-            <CreateProjectDialog teamId={teamId} onCreated={() => setOpen(false)} />
-          </Dialog>
-        ) : null}
-      </div>
-
-      {projects.length === 0 ? (
-        <EmptyState
-          icon={FolderKanban}
-          title="No projects yet"
-          description={
-            canCreate
-              ? 'Create a project to start adding tasks. Projects belong to this team.'
-              : 'No projects yet. Ask a team admin to create one.'
-          }
-          action={
-            canCreate ? (
-              <Button variant="gradient" onClick={() => setOpen(true)}>
-                <Plus className="h-4 w-4" /> New project
-              </Button>
-            ) : null
-          }
+      <div className="mt-8">
+        <MembersTab
+          teamId={teamId!}
+          ownerId={data.team.ownerId}
+          members={data.members}
+          invites={data.invites}
+          canManage={isAdmin}
         />
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {projects.map((p) => (
-            <Card key={p.id} className="group transition-all hover:border-primary/40 hover:shadow-glow">
-              <CardContent className="flex h-full flex-col gap-3 p-5">
-                <div>
-                  <h3 className="truncate text-base font-semibold tracking-tight">{p.name}</h3>
-                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                    {p.description || 'No description'}
-                  </p>
-                </div>
-                <div className="mt-auto flex items-center justify-between text-xs text-muted-foreground">
-                  <span>created {formatDate(tsToDate(p.createdAt))}</span>
-                  <div className="flex items-center gap-1">
-                    {canCreate ? <DeleteProjectButton projectId={p.id} /> : null}
-                    <Button asChild variant="ghost" size="sm">
-                      <Link to={`/projects/${p.id}`}>
-                        Open <ArrowRight className="h-3.5 w-3.5" />
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+      </div>
     </div>
-  );
-}
-
-const projectSchema = z.object({
-  name: z.string().trim().min(1).max(80),
-  description: z.string().trim().max(1000).optional(),
-});
-
-function CreateProjectDialog({ teamId, onCreated }: { teamId: string; onCreated: () => void }) {
-  const create = useCreateProject(teamId);
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    reset,
-  } = useForm<z.infer<typeof projectSchema>>({ resolver: zodResolver(projectSchema) });
-
-  const onSubmit = async (values: z.infer<typeof projectSchema>) => {
-    try {
-      await create.mutateAsync(values);
-      toast.success('Project created');
-      reset();
-      onCreated();
-    } catch (err) {
-      toast.error(err instanceof ApiClientError ? err.message : 'Failed to create project');
-    }
-  };
-
-  return (
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>New project</DialogTitle>
-        <DialogDescription>Projects organize tasks within a team.</DialogDescription>
-      </DialogHeader>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="name">Name</Label>
-          <Input id="name" placeholder="e.g. Q2 Launch" {...register('name')} />
-          {errors.name ? <p className="text-xs text-destructive">{errors.name.message}</p> : null}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="description">Description (optional)</Label>
-          <Textarea id="description" rows={3} {...register('description')} />
-        </div>
-        <DialogFooter>
-          <Button type="submit" variant="gradient" disabled={isSubmitting}>
-            {isSubmitting ? <Loader2 className="animate-spin" /> : <Plus className="h-4 w-4" />}
-            Create project
-          </Button>
-        </DialogFooter>
-      </form>
-    </DialogContent>
-  );
-}
-
-function DeleteProjectButton({ projectId }: { projectId: string }) {
-  const del = useDeleteProject();
-  const onClick = async () => {
-    if (!confirm('Delete this project and all its tasks?')) return;
-    try {
-      await del.mutateAsync(projectId);
-      toast.success('Project deleted');
-    } catch (err) {
-      toast.error(err instanceof ApiClientError ? err.message : 'Failed to delete');
-    }
-  };
-  return (
-    <Button variant="ghost" size="icon" onClick={onClick} aria-label="Delete project">
-      <Trash2 className="h-4 w-4" />
-    </Button>
   );
 }
 
@@ -287,16 +111,18 @@ function MembersTab({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {members.length} member{members.length === 1 ? '' : 's'}
-          {canManage && invites.length > 0
-            ? ` · ${invites.length} pending invite${invites.length === 1 ? '' : 's'}`
-            : ''}
-        </p>
+        <div className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+          <Users className="h-5 w-5 text-teal-600" />
+          Team Members
+          <Badge variant="secondary" className="ml-2 font-normal">
+            {members.length}
+            {canManage && invites.length > 0 ? ` + ${invites.length} pending` : ''}
+          </Badge>
+        </div>
         {canManage ? (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button variant="gradient">
+              <Button className="bg-teal-600 hover:bg-teal-700 text-white rounded-xl gap-2 font-semibold">
                 <MailPlus className="h-4 w-4" /> Invite member
               </Button>
             </DialogTrigger>
@@ -305,7 +131,7 @@ function MembersTab({
         ) : null}
       </div>
 
-      <Card>
+      <Card className="rounded-2xl border-border/60 shadow-sm overflow-hidden">
         <CardContent className="p-0">
           <ul className="divide-y divide-border/60">
             {members.map((m) => (
@@ -365,41 +191,43 @@ function MemberRow({
   };
 
   return (
-    <li className="flex items-center justify-between gap-3 px-5 py-3">
-      <div className="flex min-w-0 items-center gap-3">
-        <Avatar>
+    <li className="flex items-center justify-between gap-3 px-6 py-4 hover:bg-muted/30 transition-colors">
+      <div className="flex min-w-0 items-center gap-4">
+        <Avatar className="h-10 w-10">
           {member.photoURL ? <AvatarImage src={member.photoURL} alt={member.displayName} /> : null}
-          <AvatarFallback>{initials(member.displayName || member.email)}</AvatarFallback>
+          <AvatarFallback className="bg-teal-50 text-teal-700">{initials(member.displayName || member.email)}</AvatarFallback>
         </Avatar>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="truncate text-sm font-medium">{member.displayName || member.email}</span>
+            <span className="truncate text-sm font-semibold">{member.displayName || member.email}</span>
             {isOwner ? (
-              <Badge variant="warning" className="gap-1">
+              <Badge className="bg-amber-100 hover:bg-amber-200 text-amber-700 border-amber-200 gap-1 rounded-md px-1.5 py-0 items-center">
                 <Crown className="h-3 w-3" /> owner
               </Badge>
             ) : null}
-            {user?.uid === member.uid ? <Badge variant="outline">you</Badge> : null}
+            {user?.uid === member.uid ? <Badge variant="outline" className="rounded-md px-1.5 py-0 text-muted-foreground border-border/60">you</Badge> : null}
           </div>
-          <div className="truncate text-xs text-muted-foreground">{member.email}</div>
+          <div className="truncate text-xs text-muted-foreground mt-0.5">{member.email}</div>
         </div>
       </div>
       <div className="flex items-center gap-2">
         {canManage && !isOwner ? (
           <Select value={member.role} onValueChange={(v) => void onRoleChange(v as 'admin' | 'member')}>
-            <SelectTrigger className="h-8 w-[110px]">
+            <SelectTrigger className="h-9 w-[110px] rounded-xl">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="rounded-xl">
               <SelectItem value="admin">Admin</SelectItem>
               <SelectItem value="member">Member</SelectItem>
             </SelectContent>
           </Select>
         ) : (
-          <Badge variant={member.role === 'admin' ? 'default' : 'secondary'}>{member.role}</Badge>
+          <Badge variant={member.role === 'admin' ? 'default' : 'secondary'} className="rounded-md">
+            {member.role}
+          </Badge>
         )}
         {(canManage || user?.uid === member.uid) && !isOwner ? (
-          <Button variant="ghost" size="icon" onClick={onRemove} aria-label="Remove member">
+          <Button variant="ghost" size="icon" onClick={onRemove} aria-label="Remove member" className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl h-9 w-9">
             <Trash2 className="h-4 w-4" />
           </Button>
         ) : null}
@@ -420,24 +248,24 @@ function InviteRow({ teamId, invite }: { teamId: string; invite: InviteDoc }) {
     }
   };
   return (
-    <li className="flex items-center justify-between gap-3 bg-muted/20 px-5 py-3">
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="grid h-9 w-9 place-items-center rounded-full bg-amber-500/15 text-amber-500">
+    <li className="flex items-center justify-between gap-3 bg-muted/30 px-6 py-4">
+      <div className="flex min-w-0 items-center gap-4">
+        <div className="grid h-10 w-10 place-items-center rounded-full bg-amber-100 text-amber-600">
           <Clock className="h-4 w-4" />
         </div>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="truncate text-sm font-medium">{invite.email}</span>
-            <Badge variant="warning" className="gap-1">
+            <span className="truncate text-sm font-semibold">{invite.email}</span>
+            <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-200 gap-1 rounded-md px-1.5 py-0 items-center">
               <Clock className="h-3 w-3" /> pending
             </Badge>
           </div>
-          <div className="truncate text-xs text-muted-foreground">
-            invited as {invite.role} · joins automatically when they sign up
+          <div className="truncate text-xs text-muted-foreground mt-0.5">
+            invited as <span className="font-medium text-foreground">{invite.role}</span>
           </div>
         </div>
       </div>
-      <Button variant="ghost" size="icon" onClick={onCancel} aria-label="Cancel invite">
+      <Button variant="ghost" size="icon" onClick={onCancel} aria-label="Cancel invite" className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl h-9 w-9">
         <X className="h-4 w-4" />
       </Button>
     </li>
@@ -497,35 +325,35 @@ function InviteMemberDialog({ teamId, onClose }: { teamId: string; onClose: () =
   };
 
   return (
-    <DialogContent>
+    <DialogContent className="rounded-2xl">
       <DialogHeader>
-        <DialogTitle>Invite a member</DialogTitle>
+        <DialogTitle className="text-lg font-bold">Invite a member</DialogTitle>
         <DialogDescription>
           We'll add them right away if they already have an account. Otherwise we'll keep the
           invite pending and they'll join automatically the moment they sign up with this email.
         </DialogDescription>
       </DialogHeader>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" placeholder="teammate@company.com" {...register('email')} />
+          <Label htmlFor="email" className="font-semibold text-sm">Email</Label>
+          <Input id="email" type="email" placeholder="teammate@company.com" className="rounded-xl" {...register('email')} />
           {errors.email ? <p className="text-xs text-destructive">{errors.email.message}</p> : null}
         </div>
         <div className="space-y-2">
-          <Label>Role</Label>
+          <Label className="font-semibold text-sm">Role</Label>
           <Select value={role} onValueChange={(v) => setValue('role', v as 'admin' | 'member')}>
-            <SelectTrigger>
+            <SelectTrigger className="rounded-xl">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="rounded-xl">
               <SelectItem value="member">Member</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
             </SelectContent>
           </Select>
         </div>
-        <DialogFooter>
-          <Button type="submit" variant="gradient" disabled={isSubmitting}>
-            {isSubmitting ? <Loader2 className="animate-spin" /> : <MailPlus className="h-4 w-4" />}
+        <DialogFooter className="pt-2">
+          <Button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white rounded-xl gap-2 font-semibold w-full" disabled={isSubmitting}>
+            {isSubmitting ? <Loader2 className="animate-spin h-4 w-4" /> : <MailPlus className="h-4 w-4" />}
             Send invite
           </Button>
         </DialogFooter>
