@@ -1,0 +1,41 @@
+Team Task Manager - WebApp Workflow Guide
+
+This guide outlines the complete, end-to-end user workflow and features within the Team Task Management System.
+
+===============================================
+1. Authentication & Onboarding
+===============================================
+- User signs up or logs in using Email/Password or Google Authentication.
+- Upon successful login, the user lands on their personal Dashboard.
+- If the user has not yet joined or created any teams, the application prompts them to create their first team to unlock full functionality.
+
+===============================================
+2. Team Management
+===============================================
+- Create Team: Users can create a new workspace (team). The creator is automatically assigned as the "Owner" and "Admin."
+- Invite Members: Team Admins have the ability to search for other registered users by their email address and invite them to the team.
+- Manage Roles: Admins can assign "Admin" or "Member" roles to teammates. Only Admins can modify team settings or invite others.
+- Multi-Team Support: Users can belong to multiple teams simultaneously.
+
+===============================================
+3. Project Management
+===============================================
+- Create Project: Admins can create overarching projects. During creation, they can assign the project to one or more of their existing teams.
+- Link Teams: The project serves as a shared space. Project admins can link additional teams to an existing project at any time.
+- Overview: The project page features dedicated tabs to view the task Kanban board and manage the currently assigned teams.
+
+===============================================
+4. Task Management & Kanban Board
+===============================================
+- Create Tasks: Team members can create tasks within a project. Tasks require a Title and can optionally include a Description, Due Date, Priority (Low, Medium, High), and Status (To Do, In Progress, Done).
+- Multi-Assignee: Tasks can be assigned to multiple users across different teams. The assignee selection UI groups users neatly by their teams.
+- Kanban View: Inside a project, tasks are displayed dynamically in a Kanban board.
+- Drag-and-Drop: Users can click and drag task cards between "To Do", "In Progress", and "Done" columns to instantly update their status.
+- Permissions: Admins and the original task creator have full editing and deletion rights. Other members can only update the status of tasks assigned to them.
+
+===============================================
+5. Personal Dashboard
+===============================================
+- Data Analytics: A dynamic, visual donut chart displays a breakdown of the user's task progress (e.g., how many tasks are done vs. in progress).
+- Priority Tracking: The dashboard immediately surfaces "Overdue" and "Due Soon" tasks so the user knows exactly what requires urgent attention.
+- My Tasks List: A consolidated view of all tasks assigned specifically to the user, pulled from every project and team they are a part of.
