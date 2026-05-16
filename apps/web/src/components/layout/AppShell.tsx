@@ -69,7 +69,6 @@ export function AppShell() {
           <SidebarLink to="/projects" icon={FolderKanban} label="Projects" />
           <SidebarLink to="/my-tasks" icon={ListChecks} label="My Tasks" />
           <SidebarLink to="/teams" icon={Users} label="Team" />
-          <SidebarLink to="/assign-task" icon={CheckSquare2} label="Assign Tasks" />
         </nav>
 
         {/* Bottom Section */}

@@ -38,8 +38,13 @@ export const tasksRepo = {
   },
 
   async listByAssignee(uid: string): Promise<TaskDoc[]> {
-    const snap = await col().where('assigneeIds', 'array-contains', uid).orderBy('dueDate', 'asc').get();
-    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<TaskDoc, 'id'>) }));
+    const snap = await col().where('assigneeIds', 'array-contains', uid).get();
+    const tasks = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<TaskDoc, 'id'>) }));
+    return tasks.sort((a, b) => {
+      const timeA = a.dueDate ? a.dueDate.toMillis() : Infinity;
+      const timeB = b.dueDate ? b.dueDate.toMillis() : Infinity;
+      return timeA - timeB;
+    });
   },
 
   async listByTeams(teamIds: string[]): Promise<TaskDoc[]> {
