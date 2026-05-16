@@ -4,7 +4,7 @@
       "collectionGroup": "tasks",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "assigneeId", "order": "ASCENDING" },
+        { "fieldPath": "assigneeIds", "arrayConfig": "CONTAINS" },
         { "fieldPath": "dueDate", "order": "ASCENDING" }
       ]
     },
@@ -12,7 +12,7 @@
       "collectionGroup": "tasks",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "teamId", "order": "ASCENDING" },
+        { "fieldPath": "teamIds", "arrayConfig": "CONTAINS" },
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "dueDate", "order": "ASCENDING" }
       ]
@@ -39,7 +39,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "projectId", "order": "ASCENDING" },
-        { "fieldPath": "assigneeId", "order": "ASCENDING" },
+        { "fieldPath": "assigneeIds", "arrayConfig": "CONTAINS" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
@@ -47,7 +47,7 @@
       "collectionGroup": "tasks",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "assigneeId", "order": "ASCENDING" },
+        { "fieldPath": "assigneeIds", "arrayConfig": "CONTAINS" },
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "dueDate", "order": "ASCENDING" }
       ]
