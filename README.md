@@ -27,6 +27,35 @@ A production-ready full-stack web app for teams to plan projects, assign tasks, 
 
 ---
 
+## App Workflow & Feature Guide
+
+### 1. Authentication & Onboarding
+- **Sign Up / Login**: Users authenticate using Email/Password or Google Sign-In.
+- **Initial State**: Upon first login, users land on a personal Dashboard. If they aren't part of any team, they are prompted to create or join one.
+
+### 2. Team Management
+- **Create a Team**: Any user can create a team, automatically becoming its Owner/Admin.
+- **Invite Members**: Team Admins can search for registered users by email and add them to the team.
+- **Role Assignment**: Admins can assign roles (`Admin` or `Member`) and manage team access.
+
+### 3. Project Management
+- **Create Projects**: Admins can create new projects and assign them to one or more specific Teams.
+- **Project Detail Page**: Acts as the command center for a project, featuring a Kanban board for tasks and a tab to view/manage Assigned Teams.
+- **Link Existing Teams**: Admins can continuously link other existing teams to a project as it grows.
+
+### 4. Task Management (Kanban)
+- **Create Tasks**: Any member of a project's assigned team can create tasks. Tasks include a Title, Description, Status, Priority, Due Date, and multiple Assignees.
+- **Smart Assignee Selection**: Assignees are grouped by their respective teams, allowing for fast, multi-user assignment via a sleek dropdown UI.
+- **Drag-and-Drop Kanban**: Tasks are visualized in "To do", "In progress", and "Done" lanes. Users can intuitively drag and drop tasks between columns to update their status.
+- **Task Permissions**: Admins and the original task creator have full editing/deletion rights. Members can update the status of tasks assigned to them.
+
+### 5. Personal Dashboard
+- **Analytics**: A dynamic donut chart visualizes the breakdown of the user's task statuses.
+- **My Tasks View**: A dedicated section pulling all tasks specifically assigned to the logged-in user, across all projects and teams.
+- **Priority Tracking**: Automatically highlights "Overdue" and "Due Soon" tasks to keep productivity focused.
+
+---
+
 ## Architecture
 
 ```
